@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Çalışma Takip Formu</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAHcSURBVDhPrZM9a1NxFMZ/597kpgk0SKFk00gaMogUaqmISsBB8AP4Abpk8zs4OyniopQMDg6Cg5OIDaZBhxgK0UXSCqEItSm+oJI0997c4/DvfesgCD7T4TnPOYfzJpxA0M6uYEsDlWsoZQCEIaItZvrQqnvbSb2EhvYo6Ni5D7IuEvNJqKKgTSm4t2SVMWEC7VHQifNSkMuR2p6H/JKxJ7sw+xW5FH0jefd6mIRgy9nQTk61k1PtVlUPn6kGnkYIPMN1q0bTyWmw5WwASNDOriBWTwRhrgzLbciWomopuAfwvg5HQ9OOBqsWtjSiniv30sE/NqF3Dt7VYPQYnBJU7gIggmBLQ4JObiBQxSnB2jCeqzcywWHvYsOFDzB3FrplcA9Q2LF8/3hV+VpyKbD/KDU4dAaTHaPJ1wDwfcpWxo41EUZP4POdNGcXYf5iisrYYCEMAZgMAIWfb2GwDsE0VooNSw8gc8poxh+PeYYWoi0A3C/wfROKl+DMbcidhswCLNyA869g8aYJ+vbCzAdAtHVijRVYfg3ZxbB2Gu4+9Osw3YvXaG5bmwAcfYL+Vfj6HNSPA9WDw6fQvwLTvZBsWnVv+y+nXIR8xfQ82YXZ78iVPOX/80xJ/Os7/wHknuoMxuX5kQAAAABJRU5ErkJggg==">
+  <style>
+    #loadingBar {
+      position: relative;
+      width: 100%;
+      height: 4px;
+      background-color: transparent;
+      overflow: hidden;
+      border-radius: 9999px;
+    }
+    #loadingBar::before {
+      content: "";
+      position: absolute;
+      background-color: #2563eb;
+      top: 0;
+      bottom: 0;
+      left: -40%;
+      right: 100%;
+      animation: loading-indeterminate 1.5s infinite;
+      border-radius: 9999px;
+    }
+    @keyframes loading-indeterminate {
+      0% {
+        left: -40%;
+        right: 100%;
+      }
+      60% {
+        left: 100%;
+        right: -40%;
+      }
+      100% {
+        left: 100%;
+        right: -40%;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 p-8">
+
+  <!-- Loading Modal -->
+  <div id="loadingModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+    <div class="w-80 bg-white rounded-md shadow p-4 flex flex-col items-center">
+      <div class="w-full h-1 rounded overflow-hidden mb-3">
+        <div id="loadingBar"></div>
+      </div>
+      <span id="loadingText" class="text-gray-700 font-medium whitespace-nowrap">Yükleniyor...</span>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <div id="successModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+    <div class="w-80 bg-white rounded-xl shadow p-6 flex flex-col items-center">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-green-500 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+      <span class="text-lg font-semibold text-gray-800 mb-2">İşlem tamamlandı</span>
+      <span class="text-gray-600 mb-4">Form verileriniz başarıyla kaydedildi.</span>
+      <button id="successCloseBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Kapat</button>
+    </div>
+  </div>
+
+  <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+    <div class="w-96 bg-white rounded-xl shadow p-8 flex flex-col items-center">
+      <h2 class="text-xl font-bold mb-4">Giriş Yap</h2>
+      <input id="loginMail" type="email" placeholder="E-posta" class="w-full border p-2 rounded mb-3" required />
+      <input id="loginPassword" type="password" placeholder="Şifre" class="w-full border p-2 rounded mb-4" required />
+      <button id="loginBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full">Giriş Yap</button>
+      <span id="loginError" class="text-red-600 text-sm mt-3 hidden"></span>
+    </div>
+  </div>
+  <div id="loginSuccess" class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40 hidden">
+    <div class="bg-white rounded-xl shadow p-8 flex flex-col items-center">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-green-500 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+      <span class="text-lg font-semibold text-green-700 mb-2">Giriş başarılı</span>
+    </div>
+  </div>
+  <script>
+    const loginModal = document.getElementById('loginModal');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginMail = document.getElementById('loginMail');
+    const loginPassword = document.getElementById('loginPassword');
+    const loginError = document.getElementById('loginError');
+    const loginSuccess = document.getElementById('loginSuccess');
+
+    function showLoginError(msg) {
+      loginError.textContent = msg;
+      loginError.classList.remove('hidden');
+    }
+
+    loginBtn.addEventListener('click', async function() {
+      const mail = loginMail.value.trim();
+      const password = loginPassword.value;
+      if (!mail || !password) {
+        showLoginError('Lütfen e-posta ve şifre girin.');
+        return;
+      }
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Kontrol ediliyor...';
+      loginError.classList.add('hidden');
+      loginBtn.classList.add('bg-gray-400');
+      loginBtn.classList.remove('bg-blue-600','hover:bg-blue-700');
+      try {
+        const params = new URLSearchParams({
+          apiKey: 'yKybsCyyUsWBSrm',
+          islem: 'offlineTabloVeriCekme',
+          mail,
+          password,
+          authCheck: 'false'
+        });
+        const url = 'https://script.google.com/macros/s/AKfycbxTjUAytwmQneovY73plfp3rO6NN8ndGNKpUPEhb2wtquwYN0yoWODvSfCQ06WJ6GAE/exec?' + params.toString();
+        const res = await fetch(url);
+        const json = await res.json();
+        if (json.status === 'success' && json.message.calismaTuru) {
+          loginSuccess.classList.remove('hidden');
+          setTimeout(() => {
+            loginSuccess.classList.add('hidden');
+            loginModal.classList.add('hidden');
+            document.body.style.overflow = '';
+            document.getElementById('mainContent').style.display = '';
+            document.getElementById('mailDisplay').textContent = mail;
+            document.getElementById('mail').value = mail;
+            updateVisibility(); // Mail girildiği için alanları güncelle
+            
+            // 'Ürün Bazlı' ve 'Diğer' seçeneklerini filtrele
+            const filtrelenmisCalismaTuru = json.message.calismaTuru.filter(opt => !["Ürün Bazlı", "Diğer"].includes(opt));
+            calismaTuru.innerHTML = '<option value="">Seçiniz</option>' +
+              filtrelenmisCalismaTuru.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+
+            // 'Workshop' ve 'AI İçin Dekupe' seçeneklerini filtrele
+            const filtrelenmisUrunTuru = json.message.urunTuru.filter(opt => !["Workshop", "AI İçin Dekupe"].includes(opt));
+            urunTuru.innerHTML = '<option value="">Seçiniz</option>' +
+              filtrelenmisUrunTuru.map(opt => opt === "Yok" ? `<option value="Yok">Diğer</option>` : `<option value="${opt}">${opt}</option>`).join('');
+
+          }, 1200);
+        } else {
+          showLoginError((json.message && json.message.error) || 'Giriş başarısız.');
+        }
+      } catch (e) {
+        showLoginError('Sunucuya ulaşılamadı.');
+      }
+      loginBtn.disabled = false;
+      loginBtn.textContent = 'Giriş Yap';
+      loginBtn.classList.remove('bg-gray-400');
+      loginBtn.classList.add('bg-blue-600','hover:bg-blue-700');
+    });
+
+    function handleLoginOnEnter(event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        loginBtn.click();
+      }
+    }
+    loginMail.addEventListener('keydown', handleLoginOnEnter);
+    loginPassword.addEventListener('keydown', handleLoginOnEnter);
+    
+    // Sayfa açılışında scroll'u engelle
+    document.body.style.overflow = 'hidden';
+  </script>
+
+  <div id="mainContent" style="display:none">
+    <div class="w-full flex flex-col items-center mt-8 mb-8">
+      <img src="data:image/png;base64,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" alt="Logo" class="h-16 w-16 object-contain" />
+      <span class="mt-2 text-2xl font-bold tracking-wide text-gray-800 select-none">Studio Mangoo</span>
+    </div>
+    <div class="max-w-2xl mx-auto bg-white p-6 rounded-xl shadow" id="formContainer">
+      <h2 class="text-2xl font-bold mb-4">Haftalık Çalışma Girişi</h2>
+
+      <form id="form" class="space-y-4" autocomplete="off">
+        <div class="mb-2">
+          <span class="block font-medium">Mail:</span>
+          <span id="mailDisplay" class="block text-blue-700 font-semibold select-none"></span>
+          <input type="hidden" id="mail" name="mail" />
+        </div>
+
+        <div id="calismaTuruDiv" style="display:none">
+          <label class="block font-medium">Çalışma Türü <span class="text-red-500">*</span></label>
+          <select required id="calismaTuru" class="w-full border p-2 rounded" autocomplete="off">
+            <option value="">Yükleniyor...</option>
+          </select>
+        </div>
+
+        <div id="urunTuruDiv" style="display:none">
+          <label class="block font-medium">Ürün Türü <span class="text-red-500">*</span></label>
+          <select required id="urunTuru" class="w-full border p-2 rounded" autocomplete="off">
+            <option value="">Yükleniyor...</option>
+          </select>
+        </div>
+
+        <div id="urunOzelligiDiv" style="display:none">
+          <label class="block font-medium">Ürün Özelliği <span class="text-red-500">*</span></label>
+          <select required id="urunOzelligi" class="w-full border p-2 rounded" autocomplete="off">
+            <option value="">Seçiniz</option>
+            <option value="Orijinal">Orijinal</option>
+            <option value="Versiyon">Versiyon</option>
+          </select>
+        </div>
+
+        <div id="adetDiv" style="display:none">
+          <label class="block font-medium">Adet</label>
+          <input type="number" min="1" id="adet" class="w-full border p-2 rounded" autocomplete="off" />
+        </div>
+
+        <div id="calisilanSureDiv" style="display:none">
+          <label class="block font-medium">Çalışılan Süre</label>
+          <input type="text" id="calisilanSure" class="w-full border p-2 rounded" placeholder="__:__" maxlength="6" autocomplete="off" />
+          <small class="text-gray-500">Saat:Dakika formatında giriniz (örn: 25:30)</small>
+        </div>
+
+        <div id="isDiv" style="display:none">
+          <label class="block font-medium">İş Tanımı / ID <span class="text-red-500">*</span></label>
+          <input type="text" id="is" class="w-full border p-2 rounded" autocomplete="off" />
+        </div>
+
+        <div id="odemeDiv" style="display:none">
+          <label class="block font-medium">Ödeme Durumu</label>
+          <select id="odeme" class="w-full border p-2 rounded" autocomplete="off">
+            <option value=""></option>
+            <option value="Yapıldı">Yapıldı</option>
+          </select>
+        </div>
+
+        <div id="urunDurumuDiv" style="display:none">
+          <label class="block font-medium">Ürün Durumu</label>
+          <select id="urunDurumu" class="w-full border p-2 rounded" autocomplete="off">
+            <option value=""></option>
+            <option value="Bitmedi">Bitmedi</option>
+          </select>
+        </div>
+
+        <button type="submit" id="submitBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 hidden">
+          Kaydet
+        </button>
+      </form>
+    </div>
+  </div>
+  <script>
+    const sheetUrl = "https://script.google.com/macros/s/AKfycbxTjUAytwmQneovY73plfp3rO6NN8ndGNKpUPEhb2wtquwYN0yoWODvSfCQ06WJ6GAE/exec";
+    const loadingModal = document.getElementById("loadingModal");
+
+    const mailInput = document.getElementById("mail");
+    const calismaTuruDiv = document.getElementById("calismaTuruDiv");
+    const urunTuruDiv = document.getElementById("urunTuruDiv");
+    const urunOzelligiDiv = document.getElementById("urunOzelligiDiv");
+    const adetDiv = document.getElementById("adetDiv");
+    const isDiv = document.getElementById("isDiv");
+    const odemeDiv = document.getElementById("odemeDiv");
+    const submitBtn = document.getElementById("submitBtn");
+
+    const calismaTuru = document.getElementById("calismaTuru");
+    const urunTuru = document.getElementById("urunTuru");
+    const urunOzelligi = document.getElementById("urunOzelligi");
+    const adet = document.getElementById("adet");
+    const isInput = document.getElementById("is");
+    const odeme = document.getElementById("odeme");
+    const calisilanSureDiv = document.getElementById("calisilanSureDiv");
+    const urunDurumuDiv = document.getElementById("urunDurumuDiv");
+    const calisilanSure = document.getElementById("calisilanSure");
+    const urunDurumu = document.getElementById("urunDurumu");
+
+    function showLoading(text, hideForm) {
+      if (text) {
+        document.getElementById("loadingText").textContent = text;
+      }
+      loadingModal.classList.remove("hidden");
+      if (hideForm) {
+        document.getElementById("formContainer").style.opacity = "0";
+        document.getElementById("formContainer").style.pointerEvents = "none";
+      } else {
+        document.getElementById("formContainer").style.opacity = "1";
+        document.getElementById("formContainer").style.pointerEvents = "auto";
+      }
+    }
+    function hideLoading() {
+      loadingModal.classList.add("hidden");
+      document.getElementById("formContainer").style.opacity = "1";
+      document.getElementById("formContainer").style.pointerEvents = "auto";
+    }
+
+    function sureyiDakikayaCevir(sureStr) {
+      if (!sureStr) return "";
+      const match = sureStr.match(/^([0-9]{1,3}):([0-5][0-9])$/);
+      if (match) {
+        const saat = parseInt(match[1], 10) || 0;
+        const dakika = parseInt(match[2], 10) || 0;
+        return saat * 60 + dakika;
+      }
+      return "";
+    }
+
+    function setVisibility(id, visible) {
+      const div = document.getElementById(id + "Div");
+      if (!div) return;
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      // Sadece değişiklik varsa güncelle
+      const isCurrentlyVisible = div.style.display !== "none";
+      if (visible !== isCurrentlyVisible) {
+        div.style.display = visible ? "block" : "none";
+      }
+
+      // Ödeme ve ürünDurumu hariç, görünürse required yap
+      if (visible) {
+        if (!["odeme", "urunDurumu"].includes(id)) {
+          el.setAttribute("required", "required");
+        } else {
+          el.removeAttribute("required");
+        }
+      } else {
+        el.removeAttribute("required");
+      }
+    }
+
+    function updateVisibility(mode) {
+      submitBtn.classList.add("hidden");
+      submitBtn.textContent = "Kaydet";
+
+      if (mode === 'onlyCalismaTuru') {
+        setVisibility("calismaTuru", true);
+        ["urunTuru", "urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"].forEach(id => setVisibility(id, false));
+        return;
+      }
+      if (document.getElementById('mail').value.trim() === "") {
+        ["calismaTuru", "urunTuru", "urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"].forEach(id => setVisibility(id, false));
+        return;
+      }
+
+      setVisibility("calismaTuru", true);
+
+      const calisma = calismaTuru.value;
+      const urun = urunTuru.value;
+      const ozellik = urunOzelligi.value;
+      const adetVal = adet.value.trim();
+      const isVal = isInput.value.trim();
+      const odemeVal = odeme.value;
+      const calisilanSureVal = calisilanSure.value.trim();
+      const urunDurumuVal = urunDurumu.value;
+      const includesTasarim = urun.includes("Tasarım");
+
+      // Çalışma Yok veya Maaşlı
+      if (calisma === "Çalışma Yok" || calisma === "Maaşlı") {
+        ["urunTuru", "urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"].forEach(id => setVisibility(id, false));
+        submitBtn.classList.remove("hidden");
+        return;
+      }
+
+      // Diğer
+      if (calisma === "Diğer") {
+        setVisibility("adet", true);
+        ["urunTuru", "urunOzelligi", "odeme", "calisilanSure", "urunDurumu"].forEach(id => setVisibility(id, false));
+        if (adetVal !== "") {
+          setVisibility("is", true);
+          if (isVal !== "") {
+            submitBtn.classList.remove("hidden");
+          }
+        } else {
+          setVisibility("is", false);
+        }
+        return;
+      }
+
+      // Ürün Bazlı
+      if (calisma === "Ürün Bazlı") {
+        setVisibility("urunTuru", true);
+        ["calisilanSure", "urunDurumu"].forEach(id => setVisibility(id, false));
+        if (urun === "Yok" || urun === "Workshop" || urun === "") {
+          ["urunOzelligi", "adet", "is", "odeme"].forEach(id => setVisibility(id, false));
+          return;
+        }
+        if (urun === "AI İçin Dekupe") {
+          setVisibility("adet", true);
+          ["urunOzelligi", "odeme"].forEach(id => setVisibility(id, false));
+          if (adetVal !== "") {
+            setVisibility("is", true);
+            if (isVal !== "") {
+              submitBtn.classList.remove("hidden");
+            }
+          } else {
+            setVisibility("is", false);
+          }
+          return;
+        }
+        if (includesTasarim) {
+          setVisibility("urunOzelligi", true);
+          if (ozellik !== "") {
+            setVisibility("adet", true);
+            if (adetVal !== "") {
+              setVisibility("is", true);
+              if (isVal !== "") {
+                submitBtn.textContent = "Gönder";
+                submitBtn.classList.remove("hidden");
+              }
+            } else {
+              setVisibility("is", false);
+            }
+          } else {
+            setVisibility("adet", false);
+            setVisibility("is", false);
+          }
+          return;
+        } else {
+          setVisibility("urunOzelligi", true);
+          setVisibility("adet", false);
+          if (ozellik !== "") {
+            setVisibility("is", true);
+            if (isVal !== "") {
+              setVisibility("odeme", true);
+              submitBtn.textContent = "Gönder";
+              submitBtn.classList.remove("hidden");
+            } else {
+              setVisibility("odeme", false);
+            }
+          } else {
+            setVisibility("is", false);
+            setVisibility("odeme", false);
+          }
+          return;
+        }
+      }
+
+      // Saatlik
+      if (calisma === "Saatlik") {
+        setVisibility("urunTuru", true);
+        ["urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"].forEach(id => setVisibility(id, false));
+        if (!urun) return;
+        // Yok veya Workshop
+        if (urun === "Yok" || urun === "Workshop") {
+          setVisibility("calisilanSure", true);
+          setVisibility("adet", false);
+          if (calisilanSureVal !== "") {
+            setVisibility("is", true);
+            if (isVal !== "") {
+              submitBtn.classList.remove("hidden");
+            }
+          } else {
+            setVisibility("is", false);
+          }
+          return;
+        }
+        // AI İçin Dekupe
+        if (urun === "AI İçin Dekupe") {
+          setVisibility("adet", true);
+          setVisibility("urunOzelligi", false);
+          if (adetVal !== "") {
+            setVisibility("calisilanSure", true);
+            if (calisilanSureVal !== "") {
+              setVisibility("is", true);
+              if (isVal !== "") {
+                submitBtn.classList.remove("hidden");
+              }
+            } else {
+              setVisibility("is", false);
+            }
+          } else {
+            setVisibility("calisilanSure", false);
+            setVisibility("is", false);
+          }
+          return;
+        }
+        // Tasarım içeriyorsa
+        if (includesTasarim) {
+          setVisibility("urunOzelligi", true);
+          if (ozellik !== "") {
+            setVisibility("adet", true);
+            if (adetVal !== "") {
+              setVisibility("calisilanSure", true);
+              if (calisilanSureVal !== "") {
+                setVisibility("is", true);
+                if (isVal !== "") {
+                  submitBtn.classList.remove("hidden");
+                }
+              } else {
+                setVisibility("is", false);
+              }
+            } else {
+              setVisibility("calisilanSure", false);
+              setVisibility("is", false);
+            }
+          } else {
+            setVisibility("adet", false);
+            setVisibility("calisilanSure", false);
+            setVisibility("is", false);
+          }
+          return;
+        } else {
+          // Tasarım içermiyorsa: Ürün Özelliği -> Çalışılan Saat -> İş Tanımı/ID -> Ürün Durumu -> Kaydet
+          setVisibility("urunOzelligi", true);
+          setVisibility("adet", false);
+          if (ozellik !== "") {
+            setVisibility("calisilanSure", true);
+            if (calisilanSureVal !== "") {
+              setVisibility("is", true);
+              if (isVal !== "") {
+                setVisibility("urunDurumu", true);
+                submitBtn.classList.remove("hidden");
+              } else {
+                setVisibility("urunDurumu", false);
+              }
+            } else {
+              setVisibility("is", false);
+              setVisibility("urunDurumu", false);
+            }
+          } else {
+            setVisibility("calisilanSure", false);
+            setVisibility("is", false);
+            setVisibility("urunDurumu", false);
+          }
+          return;
+        }
+      }
+    }
+
+    // mailInput event listener'ı kaldırılacak
+    calismaTuru.addEventListener("change", updateVisibility);
+    urunTuru.addEventListener("change", updateVisibility);
+    urunOzelligi.addEventListener("change", updateVisibility);
+    adet.addEventListener("input", updateVisibility);
+    isInput.addEventListener("input", updateVisibility);
+    odeme.addEventListener("change", updateVisibility);
+    calisilanSure.addEventListener("input", updateVisibility);
+    urunDurumu.addEventListener("change", updateVisibility);
+
+    // Otomatik mask: __:__
+    calisilanSure.addEventListener("input", function(e) {
+      let val = calisilanSure.value.replace(/[^0-9]/g, "");
+      if (val.length > 5) val = val.slice(0, 5);
+      if (val.length > 2) {
+        val = val.slice(0, val.length - 2) + ":" + val.slice(-2);
+      }
+      calisilanSure.value = val;
+    });
+
+    window.onload = () => {
+      updateVisibility();
+    };
+
+    document.getElementById("form").addEventListener("submit", async function(e) {
+      // Gönder butonu aktif değilse formu gönderme
+      if (submitBtn.classList.contains("hidden") || submitBtn.disabled) {
+        e.preventDefault();
+        return;
+      }
+      e.preventDefault();
+
+      showLoading("Veriler işleniyor lütfen bekleyin...");
+      // Süreyi kontrol et
+      const dakikaDegeri = sureyiDakikayaCevir(calisilanSure.value);
+      if (calisilanSureDiv.style.display !== "none" && calisilanSure.value && dakikaDegeri === "") {
+        hideLoading();
+        alert("Lütfen süreyi Saat:Dakika formatında giriniz (örn: 25:30)");
+        calisilanSure.focus();
+        return;
+      }
+      let urunTuruValue = urunTuru.value;
+      if (urunTuruValue === "Diğer") urunTuruValue = "Yok";
+      const params = new URLSearchParams({
+        apiKey: "yKybsCyyUsWBSrm",
+        islem: "offlineTabloVeriIsleme",
+        mail: loginMail.value,
+        password: loginPassword.value,
+        authCheck: 'false',
+        calismaTuru: calismaTuru.value,
+        urunTuru: urunTuruValue,
+        urunOzelligi: urunOzelligi.value,
+        adet: adet.value,
+        is: isInput.value.trim(),
+        odeme: odeme.value,
+        calisilanSure: calisilanSure.value,
+        calisilanSureDakika: dakikaDegeri,
+        urunDurumu: urunDurumu.value,
+      });
+
+      try {
+        const res = await fetch(sheetUrl + "?" + params.toString());
+        const json = await res.json();
+        if (json.status === "success") {
+          hideLoading();
+          document.getElementById("successModal").classList.remove("hidden");
+          const eskiMail = document.getElementById('mail').value;
+          this.reset();
+          updateVisibility('onlyCalismaTuru'); // Sadece Çalışma Türü açık kalsın
+          document.getElementById('mailDisplay').textContent = eskiMail;
+          document.getElementById('mail').value = eskiMail;
+        } else {
+          hideLoading();
+          alert("Hata: " + (json.message || "Bilinmeyen hata"));
+        }
+      } catch (err) {
+        hideLoading();
+        alert("Hata: " + err.message);
+      }
+    });
+
+    document.getElementById("successCloseBtn").addEventListener("click", function() {
+      document.getElementById("successModal").classList.add("hidden");
+      calismaTuru.focus();
+    });
+
+    // ESC veya Enter ile successModal veya loadingModal kapansın (loginModal hariç)
+    document.addEventListener('keydown', function(e) {
+      const successModal = document.getElementById('successModal');
+      const loadingModal = document.getElementById('loadingModal');
+      if (successModal && !successModal.classList.contains('hidden')) {
+        if (e.key === 'Escape' || e.key === 'Enter') {
+          successModal.classList.add('hidden');
+          calismaTuru.focus();
+        }
+      } else if (e.key === 'Escape') {
+        if (loadingModal && !loadingModal.classList.contains('hidden')) {
+          loadingModal.classList.add('hidden');
+          document.getElementById('formContainer').style.opacity = '1';
+          document.getElementById('formContainer').style.pointerEvents = 'auto';
+        }
+      }
+    });
+  </script>
+</body>
+</html>
