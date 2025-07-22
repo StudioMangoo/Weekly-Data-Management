@@ -673,40 +673,54 @@
         return;
       }
       e.preventDefault();
-      const calisilanSureDiv = document.getElementById("user_calisilanSureDiv");
-      const calisilanSure = document.getElementById("user_calisilanSure");
-      const urunTuru = document.getElementById("user_urunTuru");
-      const urunOzelligi = document.getElementById("user_urunOzelligi");
-      const adet = document.getElementById("user_adet");
-      const isInput = document.getElementById("user_is");
-      const odeme = document.getElementById("user_odeme");
-      const urunDurumu = document.getElementById("user_urunDurumu");
-      const calismaTuru = document.getElementById("user_calismaTuru");
-      showLoading("Veriler işleniyor lütfen bekleyin...");
-      const dakikaDegeri = sureyiDakikayaCevir(calisilanSure.value);
-      if (calisilanSureDiv.style.display !== "none" && calisilanSure.value && dakikaDegeri === "") {
-        hideLoading();
-        alert("Lütfen süreyi Saat:Dakika formatında giriniz (örn: 25:30)");
-        calisilanSure.focus();
-        return;
+      // YENİ: Sadece görünür alanları kontrol et ve gönder
+      function isVisible(id) {
+        const div = document.getElementById("user_" + id + "Div");
+        return div && div.style.display !== "none";
       }
-      let urunTuruValue = urunTuru.value;
-      if (urunTuruValue === "Diğer") urunTuruValue = "Yok";
-      const params = new URLSearchParams({
+      const fields = [
+        "calismaTuru", "urunTuru", "urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"
+      ];
+      let paramsObj = {
         apiKey: "yKybsCyyUsWBSrm",
         islem: "offlineTabloVeriIsleme",
         mail: loginMail.value,
         name: window.girisYapanIsim || '',
-        password: loginPassword.value,
-        calismaTuru: calismaTuru.value,
-        urunTuru: urunTuruValue,
-        urunOzelligi: urunOzelligi.value,
-        adet: adet.value,
-        is: isInput.value.trim(),
-        odeme: odeme.value,
-        calisilanSure: calisilanSure.value,
-        urunDurumu: urunDurumu.value,
-      });
+        password: loginPassword.value
+      };
+      for (const field of fields) {
+        const el = document.getElementById("user_" + field);
+        if (isVisible(field)) {
+          if (el) {
+            // required kontrolü
+            if (el.hasAttribute("required") && !el.value.trim()) {
+              hideLoading();
+              alert("Lütfen tüm gerekli alanları doldurun.");
+              el.focus();
+              return;
+            }
+            paramsObj[field] = el.value;
+          }
+        } else {
+          // Gizli ise boş gönder
+          paramsObj[field] = '';
+        }
+      }
+      // Süre özel kontrolü
+      if (isVisible("calisilanSure")) {
+        const calisilanSure = document.getElementById("user_calisilanSure");
+        const dakikaDegeri = sureyiDakikayaCevir(calisilanSure.value);
+        if (calisilanSure.value && dakikaDegeri === "") {
+          hideLoading();
+          alert("Lütfen süreyi Saat:Dakika formatında giriniz (örn: 25:30)");
+          calisilanSure.focus();
+          return;
+        }
+      }
+      // urunTuru özel değer düzeltmesi
+      if (paramsObj.urunTuru === "Diğer") paramsObj.urunTuru = "Yok";
+      showLoading("Veriler işleniyor lütfen bekleyin...");
+      const params = new URLSearchParams(paramsObj);
       try {
         const res = await fetch(sheetUrl + "?" + params.toString());
         const json = await res.json();
@@ -736,17 +750,16 @@
         return;
       }
       e.preventDefault();
+      // YENİ: Sadece görünür alanları kontrol et ve gönder
+      function isVisibleA(id) {
+        const div = document.getElementById("admin_" + id + "Div");
+        return div && div.style.display !== "none";
+      }
+      const fieldsA = [
+        "calismaTuru", "urunTuru", "urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"
+      ];
       const isimInput = document.getElementById("admin_isimInput");
       const isimError = document.getElementById("admin_isimError");
-      const calisilanSureDiv = document.getElementById("admin_calisilanSureDiv");
-      const calisilanSure = document.getElementById("admin_calisilanSure");
-      const urunTuru = document.getElementById("admin_urunTuru");
-      const urunOzelligi = document.getElementById("admin_urunOzelligi");
-      const adet = document.getElementById("admin_adet");
-      const isInput = document.getElementById("admin_is");
-      const odeme = document.getElementById("admin_odeme");
-      const urunDurumu = document.getElementById("admin_urunDurumu");
-      const calismaTuru = document.getElementById("admin_calismaTuru");
       if (!window.isimlerListesi.includes(isimInput.value)) {
         isimError.classList.remove("hidden");
         isimError.textContent = "Lütfen listeden bir isim seçin.";
@@ -756,31 +769,46 @@
       } else {
         isimError.classList.add("hidden");
       }
-      showLoading("Veriler işleniyor lütfen bekleyin...");
-      const dakikaDegeri = sureyiDakikayaCevir(calisilanSure.value);
-      if (calisilanSureDiv.style.display !== "none" && calisilanSure.value && dakikaDegeri === "") {
-        hideLoading();
-        alert("Lütfen süreyi Saat:Dakika formatında giriniz (örn: 25:30)");
-        calisilanSure.focus();
-        return;
-      }
-      let urunTuruValue = urunTuru.value;
-      if (urunTuruValue === "Diğer") urunTuruValue = "Yok";
-      const params = new URLSearchParams({
+      let paramsObjA = {
         apiKey: "yKybsCyyUsWBSrm",
         islem: "offlineTabloVeriIsleme",
         mail: loginMail.value,
         name: isimInput.value.replace('(Pasif) ', ''),
-        password: loginPassword.value,
-        calismaTuru: calismaTuru.value,
-        urunTuru: urunTuruValue,
-        urunOzelligi: urunOzelligi.value,
-        adet: adet.value,
-        is: isInput.value.trim(),
-        odeme: odeme.value,
-        calisilanSure: calisilanSure.value,
-        urunDurumu: urunDurumu.value,
-      });
+        password: loginPassword.value
+      };
+      for (const field of fieldsA) {
+        const el = document.getElementById("admin_" + field);
+        if (isVisibleA(field)) {
+          if (el) {
+            // required kontrolü
+            if (el.hasAttribute("required") && !el.value.trim()) {
+              hideLoading();
+              alert("Lütfen tüm gerekli alanları doldurun.");
+              el.focus();
+              return;
+            }
+            paramsObjA[field] = el.value;
+          }
+        } else {
+          // Gizli ise boş gönder
+          paramsObjA[field] = '';
+        }
+      }
+      // Süre özel kontrolü
+      if (isVisibleA("calisilanSure")) {
+        const calisilanSure = document.getElementById("admin_calisilanSure");
+        const dakikaDegeri = sureyiDakikayaCevir(calisilanSure.value);
+        if (calisilanSure.value && dakikaDegeri === "") {
+          hideLoading();
+          alert("Lütfen süreyi Saat:Dakika formatında giriniz (örn: 25:30)");
+          calisilanSure.focus();
+          return;
+        }
+      }
+      // urunTuru özel değer düzeltmesi
+      if (paramsObjA.urunTuru === "Diğer") paramsObjA.urunTuru = "Yok";
+      showLoading("Veriler işleniyor lütfen bekleyin...");
+      const params = new URLSearchParams(paramsObjA);
       try {
         const res = await fetch(sheetUrl + "?" + params.toString());
         const json = await res.json();
