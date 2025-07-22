@@ -134,7 +134,7 @@
               // Giriş yapan kişinin ismini öneri olarak göster
               const adminIsimOneriDiv = document.getElementById('adminIsimOneri');
               const girisYapanIsim = window.isimlerListesi[0];
-              adminIsimOneriDiv.innerHTML = `<button type="button" id="adminIsimOneriBtn" class="bg-blue-100 text-blue-800 px-3 py-1 rounded hover:bg-blue-200 transition">İsminizi hızlıca seçmek için tıklayın: <b>${girisYapanIsim}</b></button>`;
+              adminIsimOneriDiv.innerHTML = `<button type="button" id="adminIsimOneriBtn" class="bg-blue-100 text-blue-800 px-3 py-1 rounded hover:bg-blue-200 transition">Kendi verinizi girmek için tıklayın: <b>${girisYapanIsim}</b></button>`;
               document.getElementById('adminIsimOneriBtn').onclick = function() {
                 const isimInput = document.getElementById('admin_isimInput');
                 isimInput.value = girisYapanIsim;
