@@ -79,130 +79,612 @@
     </div>
   </div>
   <script>
-    const loginModal = document.getElementById('loginModal');
-    const loginBtn = document.getElementById('loginBtn');
-    const loginMail = document.getElementById('loginMail');
-    const loginPassword = document.getElementById('loginPassword');
-    const loginError = document.getElementById('loginError');
-    const loginSuccess = document.getElementById('loginSuccess');
+    document.addEventListener('DOMContentLoaded', function() {
+      // Ortak değişkenler
+      const loginModal = document.getElementById('loginModal');
+      const loginBtn = document.getElementById('loginBtn');
+      const loginMail = document.getElementById('loginMail');
+      const loginPassword = document.getElementById('loginPassword');
+      const loginError = document.getElementById('loginError');
+      const loginSuccess = document.getElementById('loginSuccess');
+      const sheetUrl = "https://script.google.com/macros/s/AKfycbxTjUAytwmQneovY73plfp3rO6NN8ndGNKpUPEhb2wtquwYN0yoWODvSfCQ06WJ6GAE/exec";
+      const loadingModal = document.getElementById("loadingModal");
 
-    function showLoginError(msg) {
-      loginError.textContent = msg;
-      loginError.classList.remove('hidden');
-    }
-
-    loginBtn.addEventListener('click', async function() {
-      const mail = loginMail.value.trim();
-      const password = loginPassword.value;
-      if (!mail || !password) {
-        showLoginError('Lütfen e-posta ve şifre girin.');
-        return;
+      // Yardımcı fonksiyonlar
+      function showLoginError(msg) {
+        loginError.textContent = msg;
+        loginError.classList.remove('hidden');
       }
-      loginBtn.disabled = true;
-      loginBtn.textContent = 'Kontrol ediliyor...';
-      loginError.classList.add('hidden');
-      loginBtn.classList.add('bg-gray-400');
-      loginBtn.classList.remove('bg-blue-600','hover:bg-blue-700');
-      try {
-        const params = new URLSearchParams({
-          apiKey: 'yKybsCyyUsWBSrm',
-          islem: 'offlineTabloVeriCekme',
-          mail,
-          password,
-          authCheck: 'false'
-        });
-        const url = 'https://script.google.com/macros/s/AKfycbxTjUAytwmQneovY73plfp3rO6NN8ndGNKpUPEhb2wtquwYN0yoWODvSfCQ06WJ6GAE/exec?' + params.toString();
-        const res = await fetch(url);
-        const json = await res.json();
-        if (json.status === 'success' && json.message.calismaTuru) {
-          loginSuccess.classList.remove('hidden');
-          setTimeout(() => {
-            loginSuccess.classList.add('hidden');
-            loginModal.classList.add('hidden');
-            document.body.style.overflow = '';
-            document.getElementById('mainContent').style.display = '';
-
-            // İsimler kontrolü
-            const isimler = json.message.isimler || [];
-            if (isimler.length > 1) {
-              // Admin formu
-              document.getElementById('formUser').style.display = 'none';
-              document.getElementById('formAdmin').style.display = '';
-              // Admin formu için isim dropdown ve listeyi doldur
-              window.isimlerListesi = isimler;
-              document.getElementById('formTitle').textContent = 'Haftalık Çalışma Girişi (Yetkili)';
-              // Giriş yapan kişinin ismini öneri olarak göster
-              const adminIsimOneriDiv = document.getElementById('adminIsimOneri');
-              const girisYapanIsim = window.isimlerListesi[0];
-              adminIsimOneriDiv.innerHTML = `<button type="button" id="adminIsimOneriBtn" class="bg-blue-100 text-blue-800 px-3 py-1 rounded hover:bg-blue-200 transition">Kendi verinizi girmek için tıklayın: <b>${girisYapanIsim}</b></button>`;
-              document.getElementById('adminIsimOneriBtn').onclick = function() {
-                const isimInput = document.getElementById('admin_isimInput');
-                isimInput.value = girisYapanIsim;
-                isimSecildi = true;
-                guncelleIsimDropdown();
-                updateVisibility();
-                isimInput.focus();
-                // Çalışma türü alanına da focus ver
-                setTimeout(() => {
-                  const calismaTuru = document.getElementById('admin_calismaTuru');
-                  if (calismaTuru) calismaTuru.focus();
-                }, 0);
-              };
-              // calismaTuru ve urunTuru doldur
-              const calismaTuru = document.getElementById('admin_calismaTuru');
-              const urunTuru = document.getElementById('admin_urunTuru');
-              calismaTuru.innerHTML = '<option value="">Seçiniz</option>' +
-                json.message.calismaTuru.filter(opt => opt !== "Maaşlı").map(opt => `<option value="${opt}">${opt}</option>`).join('');
-              urunTuru.innerHTML = '<option value="">Seçiniz</option>' +
-                json.message.urunTuru.filter(opt => opt !== "Workshop").map(opt => opt === "Yok" ? `<option value="Yok">Diğer</option>` : `<option value="${opt}">${opt}</option>`).join('');
-            } else {
-              // Normal kullanıcı formu
-              document.getElementById('formUser').style.display = '';
-              document.getElementById('formAdmin').style.display = 'none';
-              document.getElementById('user_mailDisplay').textContent = mail;
-              document.getElementById('user_mail').value = mail;
-              // Giriş yapan kişinin ismini sakla
-              if (isimler.length === 1) {
-                window.girisYapanIsim = isimler[0];
-              } else {
-                window.girisYapanIsim = '';
-              }
-              // calismaTuru ve urunTuru doldur
-              const calismaTuru = document.getElementById('user_calismaTuru');
-              const urunTuru = document.getElementById('user_urunTuru');
-            calismaTuru.innerHTML = '<option value="">Seçiniz</option>' +
-                json.message.calismaTuru.filter(opt => !["Ürün Bazlı", "Diğer"].includes(opt)).map(opt => `<option value="${opt}">${opt}</option>`).join('');
-            urunTuru.innerHTML = '<option value="">Seçiniz</option>' +
-                json.message.urunTuru.filter(opt => !["Workshop", "AI İçin Dekupe"].includes(opt)).map(opt => opt === "Yok" ? `<option value="Yok">Diğer</option>` : `<option value="${opt}">${opt}</option>`).join('');
-            document.getElementById('formTitle').textContent = 'Haftalık Çalışma Girişi';
-            // Normal kullanıcıda öneri kutusunu gizle
-            document.getElementById('adminIsimOneri').innerHTML = '';
-            }
-            updateVisibility();
-          }, 1200);
-        } else {
-          showLoginError((json.message && json.message.error) || 'Giriş başarısız.');
+      function showLoading(text, hideForm) {
+        if (text) document.getElementById("loadingText").textContent = text;
+        loadingModal.classList.remove("hidden");
+        document.getElementById("formContainer").style.opacity = hideForm ? "0" : "1";
+        document.getElementById("formContainer").style.pointerEvents = hideForm ? "none" : "auto";
+      }
+      function hideLoading() {
+        loadingModal.classList.add("hidden");
+        document.getElementById("formContainer").style.opacity = "1";
+        document.getElementById("formContainer").style.pointerEvents = "auto";
+      }
+      function sureyiDakikayaCevir(sureStr) {
+        if (!sureStr) return "";
+        const match = sureStr.match(/^([0-9]{1,3}):([0-5][0-9])$/);
+        if (match) {
+          const saat = parseInt(match[1], 10) || 0;
+          const dakika = parseInt(match[2], 10) || 0;
+          return saat * 60 + dakika;
         }
-      } catch (e) {
-        showLoginError('Sunucuya ulaşılamadı.');
+        return "";
       }
-      loginBtn.disabled = false;
-      loginBtn.textContent = 'Giriş Yap';
-      loginBtn.classList.remove('bg-gray-400');
-      loginBtn.classList.add('bg-blue-600','hover:bg-blue-700');
+      function turkceNormalize(str) {
+        return str
+          .replace(/ç/g, 'c').replace(/Ç/g, 'C')
+          .replace(/ğ/g, 'g').replace(/Ğ/g, 'G')
+          .replace(/ı/g, 'i').replace(/İ/g, 'I')
+          .replace(/ö/g, 'o').replace(/Ö/g, 'O')
+          .replace(/ş/g, 's').replace(/Ş/g, 'S')
+          .replace(/ü/g, 'u').replace(/Ü/g, 'U');
+      }
+      // Alan görünürlüğü ve required yönetimi
+      function setVisibility(prefix, id, visible) {
+        const div = document.getElementById(prefix + id + "Div");
+        const el = document.getElementById(prefix + id);
+        if (!div || !el) return;
+        div.style.display = visible ? "block" : "none";
+        if (visible) {
+          if (!["odeme", "urunDurumu"].includes(id)) el.setAttribute("required", "required");
+          else el.removeAttribute("required");
+        } else {
+          el.removeAttribute("required");
+          if (el.tagName === "SELECT") el.selectedIndex = 0;
+          else el.value = "";
+        }
+      }
+      // Form alanlarını sıfırla
+      function resetFields(prefix, fields) {
+        fields.forEach(id => {
+          setVisibility(prefix, id, false);
+        });
+      }
+      // Form submit işlemi (kullanıcı/admin ortak)
+      async function handleFormSubmit(e, prefix, isAdmin) {
+        const submitBtn = document.getElementById(prefix + "submitBtn");
+        if (submitBtn.classList.contains("hidden") || submitBtn.disabled) {
+          e.preventDefault();
+          return;
+        }
+        e.preventDefault();
+        const isVisible = id => {
+          const div = document.getElementById(prefix + id + "Div");
+          return div && div.style.display !== "none";
+        };
+        const fields = ["calismaTuru", "urunTuru", "urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"];
+        let paramsObj = {
+          apiKey: "yKybsCyyUsWBSrm",
+          islem: "offlineTabloVeriIsleme",
+          mail: loginMail.value,
+          name: isAdmin ? document.getElementById("admin_isimInput").value.replace('(Pasif) ', '') : (window.girisYapanIsim || ''),
+          password: loginPassword.value
+        };
+        if (isAdmin && !window.isimlerListesi.includes(paramsObj.name)) {
+          const isimError = document.getElementById("admin_isimError");
+          isimError.classList.remove("hidden");
+          isimError.textContent = "Lütfen listeden bir isim seçin.";
+          document.getElementById("admin_isimInput").focus();
+          hideLoading();
+          return;
+        } else if (isAdmin) {
+          document.getElementById("admin_isimError").classList.add("hidden");
+        }
+        for (const field of fields) {
+          const el = document.getElementById(prefix + field);
+          if (isVisible(field)) {
+            if (el) {
+              if (el.hasAttribute("required") && !el.value.trim()) {
+                hideLoading();
+                alert("Lütfen tüm gerekli alanları doldurun.");
+                el.focus();
+                return;
+              }
+              paramsObj[field] = el.value;
+            }
+          } else {
+            paramsObj[field] = '';
+          }
+        }
+        // Süre kontrolü
+        if (isVisible("calisilanSure")) {
+          const calisilanSure = document.getElementById(prefix + "calisilanSure");
+          const dakikaDegeri = sureyiDakikayaCevir(calisilanSure.value);
+          if (calisilanSure.value && dakikaDegeri === "") {
+            hideLoading();
+            alert("Lütfen süreyi Saat:Dakika formatında giriniz (örn: 25:30)");
+            calisilanSure.focus();
+            return;
+          }
+        }
+        if (paramsObj.urunTuru === "Diğer") paramsObj.urunTuru = "Yok";
+        showLoading("Veriler işleniyor lütfen bekleyin...");
+        const params = new URLSearchParams(paramsObj);
+        try {
+          const res = await fetch(sheetUrl + "?" + params.toString());
+          const json = await res.json();
+          if (json.status === "success") {
+            hideLoading();
+            document.getElementById("successModal").classList.remove("hidden");
+            e.target.reset();
+            if (!isAdmin) {
+              document.getElementById('user_mailDisplay').textContent = loginMail.value;
+              document.getElementById('user_mail').value = loginMail.value;
+              updateVisibility('onlyCalismaTuru');
+            } else {
+              updateVisibility();
+            }
+          } else {
+            hideLoading();
+            alert("Hata: " + (json.message || "Bilinmeyen hata"));
+          }
+        } catch (err) {
+          hideLoading();
+          alert("Hata: " + err.message);
+        }
+      }
+      // Alan görünürlüğü güncelleme (kullanıcı/admin ortak)
+      function updateVisibility(mode) {
+        const isAdmin = document.getElementById('formAdmin').style.display !== 'none';
+        const prefix = isAdmin ? 'admin_' : 'user_';
+        const submitBtn = document.getElementById(prefix + 'submitBtn');
+        const calismaTuru = document.getElementById(prefix + 'calismaTuru');
+        const urunTuru = document.getElementById(prefix + 'urunTuru');
+        const urunOzelligi = document.getElementById(prefix + 'urunOzelligi');
+        const adet = document.getElementById(prefix + 'adet');
+        const isInput = document.getElementById(prefix + 'is');
+        const odeme = document.getElementById(prefix + 'odeme');
+        const calisilanSure = document.getElementById(prefix + 'calisilanSure');
+        const urunDurumu = document.getElementById(prefix + 'urunDurumu');
+        if (mode === 'onlyCalismaTuru') {
+          setVisibility(prefix, 'calismaTuru', true);
+          ['urunTuru', 'urunOzelligi', 'adet', 'is', 'odeme', 'calisilanSure', 'urunDurumu'].forEach(id => setVisibility(prefix, id, false));
+          submitBtn.classList.add('hidden');
+          return;
+        }
+        submitBtn.classList.add("hidden");
+        submitBtn.textContent = "Kaydet";
+        if (isAdmin) {
+          const isimInput = document.getElementById('admin_isimInput');
+          if (isimInput.value.trim() === "") {
+            resetFields(prefix, ["calismaTuru", "urunTuru", "urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"]);
+            return;
+          }
+        } else {
+          if (document.getElementById('user_mail').value.trim() === "") {
+            resetFields(prefix, ["calismaTuru", "urunTuru", "urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"]);
+            return;
+          }
+        }
+        setVisibility(prefix, "calismaTuru", true);
+        const calisma = calismaTuru.value;
+        if (!calisma || calisma === "") {
+          resetFields(prefix, ["urunTuru", "urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"]);
+          return;
+        }
+        const urun = urunTuru.value;
+        if (urun === "Diğer") setVisibility(prefix, "urunOzelligi", false);
+        const ozellik = urunOzelligi.value;
+        const adetVal = adet.value.trim();
+        const isVal = isInput.value.trim();
+        const calisilanSureVal = calisilanSure.value.trim();
+        const includesTasarim = urun.includes("Tasarım");
+        if (includesTasarim) {
+          setVisibility(prefix, "odeme", false);
+          setVisibility(prefix, "urunDurumu", false);
+        }
+        if (calisma === "Çalışma Yok" || calisma === "Maaşlı") {
+          resetFields(prefix, ["urunTuru", "urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"]);
+          submitBtn.classList.remove("hidden");
+          return;
+        }
+        if (calisma === "Diğer") {
+          setVisibility(prefix, "adet", true);
+          ["urunTuru", "urunOzelligi", "odeme", "calisilanSure", "urunDurumu"].forEach(id => setVisibility(prefix, id, false));
+          if (adetVal !== "") {
+            setVisibility(prefix, "is", true);
+            if (isVal !== "") submitBtn.classList.remove("hidden");
+          } else {
+            setVisibility(prefix, "is", false);
+          }
+          return;
+        }
+        if (calisma === "Ürün Bazlı") {
+          setVisibility(prefix, "urunTuru", true);
+          ["calisilanSure", "urunDurumu"].forEach(id => setVisibility(prefix, id, false));
+          if (["Yok", "Workshop", ""].includes(urun)) {
+            ["urunOzelligi", "adet", "is", "odeme"].forEach(id => setVisibility(prefix, id, false));
+            return;
+          }
+          if (urun === "AI İçin Dekupe") {
+            setVisibility(prefix, "adet", true);
+            ["urunOzelligi", "odeme"].forEach(id => setVisibility(prefix, id, false));
+            if (adetVal !== "") {
+              setVisibility(prefix, "is", true);
+              if (isVal !== "") submitBtn.classList.remove("hidden");
+            } else {
+              setVisibility(prefix, "is", false);
+            }
+            return;
+          }
+          if (includesTasarim) {
+            setVisibility(prefix, "urunOzelligi", true);
+            if (ozellik !== "") {
+              setVisibility(prefix, "adet", true);
+              if (adetVal !== "") {
+                setVisibility(prefix, "is", true);
+                if (isVal !== "") {
+                  submitBtn.textContent = "Gönder";
+                  submitBtn.classList.remove("hidden");
+                }
+              } else {
+                setVisibility(prefix, "is", false);
+              }
+            } else {
+              setVisibility(prefix, "adet", false);
+              setVisibility(prefix, "is", false);
+            }
+            return;
+          } else {
+            setVisibility(prefix, "urunOzelligi", true);
+            setVisibility(prefix, "adet", false);
+            if (ozellik !== "") {
+              setVisibility(prefix, "is", true);
+              if (isVal !== "") {
+                setVisibility(prefix, "odeme", true);
+                submitBtn.textContent = "Gönder";
+                submitBtn.classList.remove("hidden");
+              } else {
+                setVisibility(prefix, "odeme", false);
+              }
+            } else {
+              setVisibility(prefix, "is", false);
+              setVisibility(prefix, "odeme", false);
+            }
+            return;
+          }
+        }
+        if (calisma === "Saatlik") {
+          setVisibility(prefix, "urunTuru", true);
+          if (!urun) return;
+          if (["Yok", "Workshop"].includes(urun)) {
+            setVisibility(prefix, "calisilanSure", true);
+            setVisibility(prefix, "adet", false);
+            if (calisilanSureVal !== "") {
+              setVisibility(prefix, "is", true);
+              if (isVal !== "") submitBtn.classList.remove("hidden");
+            } else {
+              setVisibility(prefix, "is", false);
+            }
+            return;
+          }
+          if (urun === "AI İçin Dekupe") {
+            setVisibility(prefix, "adet", true);
+            setVisibility(prefix, "urunOzelligi", false);
+            if (adetVal !== "") {
+              setVisibility(prefix, "calisilanSure", true);
+              if (calisilanSureVal !== "") {
+                setVisibility(prefix, "is", true);
+                if (isVal !== "") submitBtn.classList.remove("hidden");
+              } else {
+                setVisibility(prefix, "is", false);
+              }
+            } else {
+              setVisibility(prefix, "calisilanSure", false);
+              setVisibility(prefix, "is", false);
+            }
+            return;
+          }
+          if (includesTasarim) {
+            setVisibility(prefix, "urunOzelligi", true);
+            if (ozellik !== "") {
+              setVisibility(prefix, "adet", true);
+              if (adetVal !== "") {
+                setVisibility(prefix, "calisilanSure", true);
+                if (calisilanSureVal !== "") {
+                  setVisibility(prefix, "is", true);
+                  if (isVal !== "") submitBtn.classList.remove("hidden");
+                } else {
+                  setVisibility(prefix, "is", false);
+                }
+              } else {
+                setVisibility(prefix, "calisilanSure", false);
+                setVisibility(prefix, "is", false);
+              }
+            } else {
+              setVisibility(prefix, "adet", false);
+              setVisibility(prefix, "calisilanSure", false);
+              setVisibility(prefix, "is", false);
+            }
+            return;
+          } else {
+            setVisibility(prefix, "urunOzelligi", true);
+            setVisibility(prefix, "adet", false);
+            if (ozellik !== "") {
+              setVisibility(prefix, "calisilanSure", true);
+              if (calisilanSureVal !== "") {
+                setVisibility(prefix, "is", true);
+                if (isVal !== "") {
+                  setVisibility(prefix, "urunDurumu", true);
+                  submitBtn.classList.remove("hidden");
+                } else {
+                  setVisibility(prefix, "urunDurumu", false);
+                }
+              } else {
+                setVisibility(prefix, "is", false);
+                setVisibility(prefix, "urunDurumu", false);
+                setVisibility(prefix, "odeme", false);
+              }
+            } else {
+              setVisibility(prefix, "calisilanSure", false);
+              setVisibility(prefix, "is", false);
+              setVisibility(prefix, "urunDurumu", false);
+              setVisibility(prefix, "odeme", false);
+            }
+            return;
+          }
+        }
+      }
+      // Event listenerları tek döngüyle ekle
+      ["user_", "admin_"].forEach(prefix => {
+        ["calismaTuru", "urunTuru", "urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"].forEach(id => {
+          const el = document.getElementById(prefix + id);
+          if (!el) return;
+          if (["calismaTuru", "urunTuru", "urunOzelligi", "odeme", "urunDurumu"].includes(id)) {
+            el.addEventListener("change", updateVisibility);
+          } else {
+            el.addEventListener("input", updateVisibility);
+          }
+        });
+      });
+      // Otomatik mask: __:__
+      ["user_calisilanSure", "admin_calisilanSure"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener("input", function(e) {
+            let val = el.value.replace(/[^0-9]/g, "");
+            if (val.length > 5) val = val.slice(0, 5);
+            if (val.length > 2) val = val.slice(0, val.length - 2) + ":" + val.slice(-2);
+            el.value = val;
+          });
+        }
+      });
+      // Çalışma Türü veya Ürün Türü değiştiğinde altındaki alanları sıfırla ve görünürlükleri güncelle
+      ["user_", "admin_"].forEach(prefix => {
+        const calismaTuru = document.getElementById(prefix + "calismaTuru");
+        const urunTuru = document.getElementById(prefix + "urunTuru");
+        if (calismaTuru) {
+          calismaTuru.addEventListener("change", function() {
+            resetFields(prefix, ["urunTuru", "urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"]);
+            updateVisibility();
+          });
+        }
+        if (urunTuru) {
+          urunTuru.addEventListener("change", function() {
+            resetFields(prefix, ["urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"]);
+            updateVisibility();
+          });
+        }
+      });
+      // Success modal kapama
+      document.getElementById("successCloseBtn").addEventListener("click", function() {
+        document.getElementById("successModal").classList.add("hidden");
+        const isAdmin = document.getElementById('formAdmin').style.display !== 'none';
+        if (isAdmin) document.getElementById('admin_isimInput').focus();
+        else document.getElementById('user_calismaTuru').focus();
+      });
+      // ESC veya Enter ile successModal veya loadingModal kapansın (loginModal hariç)
+      document.addEventListener('keydown', function(e) {
+        const successModal = document.getElementById('successModal');
+        const loadingModal = document.getElementById('loadingModal');
+        // Loading modal açıkken Enter veya Space tuşuna basılırsa hiçbir şey yapma
+        if (loadingModal && !loadingModal.classList.contains('hidden')) {
+          if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+        }
+        if (successModal && !successModal.classList.contains('hidden')) {
+          if (e.key === 'Escape' || e.key === 'Enter') {
+            successModal.classList.add('hidden');
+            const isAdmin = document.getElementById('formAdmin').style.display !== 'none';
+            if (isAdmin) document.getElementById('admin_isimInput').focus();
+            else document.getElementById('user_calismaTuru').focus();
+          }
+        } else if (e.key === 'Escape') {
+          if (loadingModal && !loadingModal.classList.contains('hidden')) {
+            // loadingModal artık ESC ile kapanmayacak
+            // document.getElementById('formContainer').style.opacity = '1';
+            // document.getElementById('formContainer').style.pointerEvents = 'auto';
+          }
+        }
+      });
+      // Form submit eventleri
+      document.getElementById("formUser").addEventListener("submit", function(e) {
+        handleFormSubmit(e, "user_", false);
+      });
+      document.getElementById("formAdmin").addEventListener("submit", function(e) {
+        handleFormSubmit(e, "admin_", true);
+      });
+      // Admin formu için isim dropdown ve arama işlevi
+      let isimSecildi = false;
+      let isimDropdownIndex = -1;
+      let isimDropdownFiltered = [];
+      const isimInput = document.getElementById("admin_isimInput");
+      const isimDropdown = document.getElementById("admin_isimDropdown");
+      const isimError = document.getElementById("admin_isimError");
+      function guncelleIsimDropdown() {
+        const search = turkceNormalize(isimInput.value).toLowerCase();
+        isimDropdownFiltered = !search ? window.isimlerListesi : window.isimlerListesi.filter(opt => turkceNormalize(opt).toLowerCase().includes(search));
+        if (isimDropdownFiltered.length === 0 || isimSecildi) {
+          isimDropdown.classList.add("hidden");
+          isimDropdown.innerHTML = "";
+          isimDropdownIndex = -1;
+          return;
+        }
+        isimDropdown.innerHTML = isimDropdownFiltered.map((opt, i) => `<div class='px-3 py-2 hover:bg-blue-100 cursor-pointer${i === isimDropdownIndex ? ' bg-blue-100' : ''}' data-value="${opt}">${opt}</div>`).join('');
+        isimDropdown.classList.remove("hidden");
+      }
+      if (isimInput) {
+        isimInput.addEventListener("input", function() {
+          isimError.classList.add("hidden");
+          isimSecildi = false;
+          isimDropdownIndex = -1;
+          guncelleIsimDropdown();
+          updateVisibility();
+        });
+        isimInput.addEventListener("focus", function() {
+          isimSecildi = false;
+          isimDropdownIndex = -1;
+          guncelleIsimDropdown();
+        });
+        isimInput.addEventListener("keydown", function(e) {
+          if (isimDropdown.classList.contains("hidden") || isimDropdownFiltered.length === 0) return;
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            isimDropdownIndex = (isimDropdownIndex + 1) % isimDropdownFiltered.length;
+            guncelleIsimDropdown();
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            isimDropdownIndex = (isimDropdownIndex - 1 + isimDropdownFiltered.length) % isimDropdownFiltered.length;
+            guncelleIsimDropdown();
+          } else if (e.key === "Enter") {
+            let indexToSelect = isimDropdownIndex === -1 && isimDropdownFiltered.length > 0 ? 0 : isimDropdownIndex;
+            if (indexToSelect >= 0 && indexToSelect < isimDropdownFiltered.length) {
+              isimInput.value = isimDropdownFiltered[indexToSelect];
+              isimSecildi = true;
+              isimDropdown.classList.add("hidden");
+              isimDropdownIndex = -1;
+              guncelleIsimDropdown();
+              updateVisibility();
+              setTimeout(() => {
+                const isAdmin = document.getElementById('formAdmin').style.display !== 'none';
+                const calismaTuru = document.getElementById(isAdmin ? 'admin_calismaTuru' : 'user_calismaTuru');
+                if (calismaTuru) calismaTuru.focus();
+              }, 0);
+              e.preventDefault();
+            }
+          } else if (e.key === "Escape") {
+            isimDropdown.classList.add("hidden");
+            isimDropdownIndex = -1;
+          }
+        });
+        isimDropdown.addEventListener("mousedown", function(e) {
+          if (e.target && e.target.dataset.value) {
+            isimInput.value = e.target.dataset.value;
+            isimSecildi = true;
+            isimDropdown.classList.add("hidden");
+            isimDropdownIndex = -1;
+            updateVisibility();
+          }
+        });
+        isimInput.addEventListener("blur", function() {
+          setTimeout(() => isimDropdown.classList.add("hidden"), 150);
+        });
+      }
+      // Login işlemleri (değişiklik yok, mevcut kod korunuyor)
+      function handleLoginOnEnter(event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          loginBtn.click();
+        }
+      }
+      loginBtn.addEventListener('click', async function() {
+        const mail = loginMail.value.trim();
+        const password = loginPassword.value;
+        if (!mail || !password) {
+          showLoginError('Lütfen e-posta ve şifre girin.');
+          return;
+        }
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Kontrol ediliyor...';
+        loginError.classList.add('hidden');
+        loginBtn.classList.add('bg-gray-400');
+        loginBtn.classList.remove('bg-blue-600','hover:bg-blue-700');
+        try {
+          const params = new URLSearchParams({
+            apiKey: 'yKybsCyyUsWBSrm',
+            islem: 'offlineTabloVeriCekme',
+            mail,
+            password,
+            authCheck: 'false'
+          });
+          const url = sheetUrl + '?' + params.toString();
+          const res = await fetch(url);
+          const json = await res.json();
+          if (json.status === 'success' && json.message.calismaTuru) {
+            loginSuccess.classList.remove('hidden');
+            setTimeout(() => {
+              loginSuccess.classList.add('hidden');
+              loginModal.classList.add('hidden');
+              document.body.style.overflow = '';
+              document.getElementById('mainContent').style.display = '';
+              const isimler = json.message.isimler || [];
+              if (isimler.length > 1) {
+                document.getElementById('formUser').style.display = 'none';
+                document.getElementById('formAdmin').style.display = '';
+                window.isimlerListesi = isimler;
+                document.getElementById('formTitle').textContent = 'Haftalık Çalışma Girişi (Yetkili)';
+                const adminIsimOneriDiv = document.getElementById('adminIsimOneri');
+                const girisYapanIsim = window.isimlerListesi[0];
+                adminIsimOneriDiv.innerHTML = `<button type="button" id="adminIsimOneriBtn" class="bg-blue-100 text-blue-800 px-3 py-1 rounded hover:bg-blue-200 transition">Kendi verinizi girmek için tıklayın: <b>${girisYapanIsim}</b></button>`;
+                document.getElementById('adminIsimOneriBtn').onclick = function() {
+                  const isimInput = document.getElementById('admin_isimInput');
+                  isimInput.value = girisYapanIsim;
+                  isimSecildi = true;
+                  guncelleIsimDropdown();
+                  updateVisibility();
+                  isimInput.focus();
+                  setTimeout(() => {
+                    const calismaTuru = document.getElementById('admin_calismaTuru');
+                    if (calismaTuru) calismaTuru.focus();
+                  }, 0);
+                };
+                const calismaTuru = document.getElementById('admin_calismaTuru');
+                const urunTuru = document.getElementById('admin_urunTuru');
+                calismaTuru.innerHTML = '<option value="">Seçiniz</option>' +
+                  json.message.calismaTuru.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                urunTuru.innerHTML = '<option value="">Seçiniz</option>' +
+                  json.message.urunTuru.filter(opt => opt !== "Workshop").map(opt => opt === "Yok" ? `<option value="Yok">Diğer</option>` : `<option value="${opt}">${opt}</option>`).join('');
+              } else {
+                document.getElementById('formUser').style.display = '';
+                document.getElementById('formAdmin').style.display = 'none';
+                document.getElementById('user_mailDisplay').textContent = mail;
+                document.getElementById('user_mail').value = mail;
+                window.girisYapanIsim = isimler.length === 1 ? isimler[0] : '';
+                const calismaTuru = document.getElementById('user_calismaTuru');
+                const urunTuru = document.getElementById('user_urunTuru');
+                calismaTuru.innerHTML = '<option value="">Seçiniz</option>' +
+                  json.message.calismaTuru.filter(opt => !["Ürün Bazlı", "Diğer"].includes(opt)).map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                urunTuru.innerHTML = '<option value="">Seçiniz</option>' +
+                  json.message.urunTuru.filter(opt => !["Workshop", "AI İçin Dekupe"].includes(opt)).map(opt => opt === "Yok" ? `<option value="Yok">Diğer</option>` : `<option value="${opt}">${opt}</option>`).join('');
+                document.getElementById('formTitle').textContent = 'Haftalık Çalışma Girişi';
+                document.getElementById('adminIsimOneri').innerHTML = '';
+              }
+              updateVisibility();
+            }, 1200);
+          } else {
+            showLoginError((json.message && json.message.error) || 'Giriş başarısız.');
+          }
+        } catch (e) {
+          showLoginError('Sunucuya ulaşılamadı.');
+        }
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Giriş Yap';
+        loginBtn.classList.remove('bg-gray-400');
+        loginBtn.classList.add('bg-blue-600','hover:bg-blue-700');
+      });
+      loginMail.addEventListener('keydown', handleLoginOnEnter);
+      loginPassword.addEventListener('keydown', handleLoginOnEnter);
+      document.body.style.overflow = 'hidden';
     });
-
-    function handleLoginOnEnter(event) {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        loginBtn.click();
-      }
-    }
-    loginMail.addEventListener('keydown', handleLoginOnEnter);
-    loginPassword.addEventListener('keydown', handleLoginOnEnter);
-    
-    // Sayfa açılışında scroll'u engelle
-    document.body.style.overflow = 'hidden';
   </script>
 
   <div id="mainContent" style="display:none">
@@ -334,599 +816,5 @@
       </form>
     </div>
   </div>
-  <script>
-    const sheetUrl = "https://script.google.com/macros/s/AKfycbxTjUAytwmQneovY73plfp3rO6NN8ndGNKpUPEhb2wtquwYN0yoWODvSfCQ06WJ6GAE/exec";
-    const loadingModal = document.getElementById("loadingModal");
-
-    function showLoading(text, hideForm) {
-      if (text) {
-        document.getElementById("loadingText").textContent = text;
-      }
-      loadingModal.classList.remove("hidden");
-      if (hideForm) {
-        document.getElementById("formContainer").style.opacity = "0";
-        document.getElementById("formContainer").style.pointerEvents = "none";
-      } else {
-        document.getElementById("formContainer").style.opacity = "1";
-        document.getElementById("formContainer").style.pointerEvents = "auto";
-      }
-    }
-    function hideLoading() {
-      loadingModal.classList.add("hidden");
-      document.getElementById("formContainer").style.opacity = "1";
-      document.getElementById("formContainer").style.pointerEvents = "auto";
-    }
-
-    function sureyiDakikayaCevir(sureStr) {
-      if (!sureStr) return "";
-      const match = sureStr.match(/^([0-9]{1,3}):([0-5][0-9])$/);
-      if (match) {
-        const saat = parseInt(match[1], 10) || 0;
-        const dakika = parseInt(match[2], 10) || 0;
-        return saat * 60 + dakika;
-      }
-      return "";
-    }
-
-    function setVisibility(prefix, id, visible) {
-      const div = document.getElementById(prefix + id + "Div");
-      if (!div) return;
-      const el = document.getElementById(prefix + id);
-      if (!el) return;
-      const isCurrentlyVisible = div.style.display !== "none";
-      if (visible !== isCurrentlyVisible) {
-        div.style.display = visible ? "block" : "none";
-      }
-      if (visible) {
-        if (!["odeme", "urunDurumu"].includes(id)) {
-          el.setAttribute("required", "required");
-        } else {
-          el.removeAttribute("required");
-        }
-      } else {
-        el.removeAttribute("required");
-      }
-    }
-
-    function updateVisibility(mode) {
-      const isAdmin = document.getElementById('formAdmin').style.display !== 'none';
-      const prefix = isAdmin ? 'admin_' : 'user_';
-      const submitBtn = document.getElementById(prefix + 'submitBtn');
-      const calismaTuru = document.getElementById(prefix + 'calismaTuru');
-      const urunTuru = document.getElementById(prefix + 'urunTuru');
-      const urunOzelligi = document.getElementById(prefix + 'urunOzelligi');
-      const adet = document.getElementById(prefix + 'adet');
-      const isInput = document.getElementById(prefix + 'is');
-      const odeme = document.getElementById(prefix + 'odeme');
-      const calisilanSureDiv = document.getElementById(prefix + 'calisilanSureDiv');
-      const urunDurumuDiv = document.getElementById(prefix + 'urunDurumuDiv');
-      const calisilanSure = document.getElementById(prefix + 'calisilanSure');
-      const urunDurumu = document.getElementById(prefix + 'urunDurumu');
-      if (mode === 'onlyCalismaTuru') {
-        setVisibility(prefix, 'calismaTuru', true);
-        ['urunTuru', 'urunOzelligi', 'adet', 'is', 'odeme', 'calisilanSure', 'urunDurumu'].forEach(id => setVisibility(prefix, id, false));
-        submitBtn.classList.add('hidden');
-        return;
-      }
-      submitBtn.classList.add("hidden");
-      submitBtn.textContent = "Kaydet";
-      if (isAdmin) {
-        const isimInput = document.getElementById('admin_isimInput');
-        if (isimInput.value.trim() === "") {
-          ["calismaTuru", "urunTuru", "urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"].forEach(id => setVisibility(prefix, id, false));
-        return;
-      }
-      } else {
-        if (document.getElementById('user_mail').value.trim() === "") {
-          ["calismaTuru", "urunTuru", "urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"].forEach(id => setVisibility(prefix, id, false));
-        return;
-        }
-      }
-      setVisibility(prefix, "calismaTuru", true);
-      const calisma = calismaTuru.value;
-      const urun = urunTuru.value;
-      const ozellik = urunOzelligi.value;
-      const adetVal = adet.value.trim();
-      const isVal = isInput.value.trim();
-      const odemeVal = odeme.value;
-      const calisilanSureVal = calisilanSure.value.trim();
-      const urunDurumuVal = urunDurumu.value;
-      const includesTasarim = urun.includes("Tasarım");
-      if (calisma === "Çalışma Yok" || calisma === "Maaşlı") {
-        ["urunTuru", "urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"].forEach(id => setVisibility(prefix, id, false));
-        submitBtn.classList.remove("hidden");
-        return;
-      }
-      if (calisma === "Diğer") {
-        setVisibility(prefix, "adet", true);
-        ["urunTuru", "urunOzelligi", "odeme", "calisilanSure", "urunDurumu"].forEach(id => setVisibility(prefix, id, false));
-        if (adetVal !== "") {
-          setVisibility(prefix, "is", true);
-          if (isVal !== "") {
-            submitBtn.classList.remove("hidden");
-          }
-        } else {
-          setVisibility(prefix, "is", false);
-        }
-        return;
-      }
-      if (calisma === "Ürün Bazlı") {
-        setVisibility(prefix, "urunTuru", true);
-        ["calisilanSure", "urunDurumu"].forEach(id => setVisibility(prefix, id, false));
-        if (urun === "Yok" || urun === "Workshop" || urun === "") {
-          ["urunOzelligi", "adet", "is", "odeme"].forEach(id => setVisibility(prefix, id, false));
-          return;
-        }
-        if (urun === "AI İçin Dekupe") {
-          setVisibility(prefix, "adet", true);
-          ["urunOzelligi", "odeme"].forEach(id => setVisibility(prefix, id, false));
-          if (adetVal !== "") {
-            setVisibility(prefix, "is", true);
-            if (isVal !== "") {
-              submitBtn.classList.remove("hidden");
-            }
-          } else {
-            setVisibility(prefix, "is", false);
-          }
-          return;
-        }
-        if (includesTasarim) {
-          setVisibility(prefix, "urunOzelligi", true);
-          if (ozellik !== "") {
-            setVisibility(prefix, "adet", true);
-            if (adetVal !== "") {
-              setVisibility(prefix, "is", true);
-              if (isVal !== "") {
-                submitBtn.textContent = "Gönder";
-                submitBtn.classList.remove("hidden");
-              }
-            } else {
-              setVisibility(prefix, "is", false);
-            }
-          } else {
-            setVisibility(prefix, "adet", false);
-            setVisibility(prefix, "is", false);
-          }
-          return;
-        } else {
-          setVisibility(prefix, "urunOzelligi", true);
-          setVisibility(prefix, "adet", false);
-          if (ozellik !== "") {
-            setVisibility(prefix, "is", true);
-            if (isVal !== "") {
-              setVisibility(prefix, "odeme", true);
-              submitBtn.textContent = "Gönder";
-              submitBtn.classList.remove("hidden");
-            } else {
-              setVisibility(prefix, "odeme", false);
-            }
-          } else {
-            setVisibility(prefix, "is", false);
-            setVisibility(prefix, "odeme", false);
-          }
-          return;
-        }
-      }
-      if (calisma === "Saatlik") {
-        setVisibility(prefix, "urunTuru", true);
-        ["urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"].forEach(id => setVisibility(prefix, id, false));
-        if (!urun) return;
-        if (urun === "Yok" || urun === "Workshop") {
-          setVisibility(prefix, "calisilanSure", true);
-          setVisibility(prefix, "adet", false);
-          if (calisilanSureVal !== "") {
-            setVisibility(prefix, "is", true);
-            if (isVal !== "") {
-              submitBtn.classList.remove("hidden");
-            }
-          } else {
-            setVisibility(prefix, "is", false);
-          }
-          return;
-        }
-        if (urun === "AI İçin Dekupe") {
-          setVisibility(prefix, "adet", true);
-          setVisibility(prefix, "urunOzelligi", false);
-          if (adetVal !== "") {
-            setVisibility(prefix, "calisilanSure", true);
-            if (calisilanSureVal !== "") {
-              setVisibility(prefix, "is", true);
-              if (isVal !== "") {
-                submitBtn.classList.remove("hidden");
-              }
-            } else {
-              setVisibility(prefix, "is", false);
-            }
-          } else {
-            setVisibility(prefix, "calisilanSure", false);
-            setVisibility(prefix, "is", false);
-          }
-          return;
-        }
-        if (includesTasarim) {
-          setVisibility(prefix, "urunOzelligi", true);
-          if (ozellik !== "") {
-            setVisibility(prefix, "adet", true);
-            if (adetVal !== "") {
-              setVisibility(prefix, "calisilanSure", true);
-              if (calisilanSureVal !== "") {
-                setVisibility(prefix, "is", true);
-                if (isVal !== "") {
-                  submitBtn.classList.remove("hidden");
-                }
-              } else {
-                setVisibility(prefix, "is", false);
-              }
-            } else {
-              setVisibility(prefix, "calisilanSure", false);
-              setVisibility(prefix, "is", false);
-            }
-          } else {
-            setVisibility(prefix, "adet", false);
-            setVisibility(prefix, "calisilanSure", false);
-            setVisibility(prefix, "is", false);
-          }
-          return;
-        } else {
-          setVisibility(prefix, "urunOzelligi", true);
-          setVisibility(prefix, "adet", false);
-          if (ozellik !== "") {
-            setVisibility(prefix, "calisilanSure", true);
-            if (calisilanSureVal !== "") {
-              setVisibility(prefix, "is", true);
-              if (isVal !== "") {
-                setVisibility(prefix, "urunDurumu", true);
-                submitBtn.classList.remove("hidden");
-              } else {
-                setVisibility(prefix, "urunDurumu", false);
-              }
-            } else {
-              setVisibility(prefix, "is", false);
-              setVisibility(prefix, "urunDurumu", false);
-            }
-          } else {
-            setVisibility(prefix, "calisilanSure", false);
-            setVisibility(prefix, "is", false);
-            setVisibility(prefix, "urunDurumu", false);
-          }
-          return;
-        }
-      }
-    }
-
-    // Event listenerları yeni id'lere göre ekliyorum
-    [
-      {prefix: 'user_', ids: ["calismaTuru", "urunTuru", "urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"]},
-      {prefix: 'admin_', ids: ["calismaTuru", "urunTuru", "urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"]}
-    ].forEach(group => {
-      group.ids.forEach(id => {
-        const el = document.getElementById(group.prefix + id);
-        if (!el) return;
-        if (["calismaTuru", "urunTuru", "urunOzelligi", "odeme", "urunDurumu"].includes(id)) {
-          el.addEventListener("change", updateVisibility);
-        } else {
-          el.addEventListener("input", updateVisibility);
-        }
-      });
-    });
-
-    // Otomatik mask: __:__
-    ["user_calisilanSure", "admin_calisilanSure"].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.addEventListener("input", function(e) {
-          let val = el.value.replace(/[^0-9]/g, "");
-      if (val.length > 5) val = val.slice(0, 5);
-      if (val.length > 2) {
-        val = val.slice(0, val.length - 2) + ":" + val.slice(-2);
-      }
-          el.value = val;
-        });
-      }
-    });
-
-    // window.onload = ... ve eski form submit eventini de kaldır
-    // document.getElementById("form").addEventListener("submit", ...); // ESKİ KODU SİL
-
-    document.getElementById("successCloseBtn").addEventListener("click", function() {
-      document.getElementById("successModal").classList.add("hidden");
-      const isAdmin = document.getElementById('formAdmin').style.display !== 'none';
-      if (isAdmin) {
-        const isimInput = document.getElementById('admin_isimInput');
-        if (isimInput) isimInput.focus();
-      } else {
-        const calismaTuru = document.getElementById('user_calismaTuru');
-        if (calismaTuru) calismaTuru.focus();
-      }
-    });
-
-    // ESC veya Enter ile successModal veya loadingModal kapansın (loginModal hariç)
-    document.addEventListener('keydown', function(e) {
-      const successModal = document.getElementById('successModal');
-      const loadingModal = document.getElementById('loadingModal');
-      if (successModal && !successModal.classList.contains('hidden')) {
-        if (e.key === 'Escape' || e.key === 'Enter') {
-          successModal.classList.add('hidden');
-          const isAdmin = document.getElementById('formAdmin').style.display !== 'none';
-          if (isAdmin) {
-            const isimInput = document.getElementById('admin_isimInput');
-            if (isimInput) isimInput.focus();
-          } else {
-            const calismaTuru = document.getElementById('user_calismaTuru');
-            if (calismaTuru) calismaTuru.focus();
-          }
-        }
-      } else if (e.key === 'Escape') {
-        if (loadingModal && !loadingModal.classList.contains('hidden')) {
-          loadingModal.classList.add('hidden');
-          document.getElementById('formContainer').style.opacity = '1';
-          document.getElementById('formContainer').style.pointerEvents = 'auto';
-        }
-      }
-    });
-
-    // Kullanıcı formu submit
-    document.getElementById("formUser").addEventListener("submit", async function(e) {
-      const submitBtn = document.getElementById("user_submitBtn");
-      if (submitBtn.classList.contains("hidden") || submitBtn.disabled) {
-        e.preventDefault();
-        return;
-      }
-      e.preventDefault();
-      // YENİ: Sadece görünür alanları kontrol et ve gönder
-      function isVisible(id) {
-        const div = document.getElementById("user_" + id + "Div");
-        return div && div.style.display !== "none";
-      }
-      const fields = [
-        "calismaTuru", "urunTuru", "urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"
-      ];
-      let paramsObj = {
-        apiKey: "yKybsCyyUsWBSrm",
-        islem: "offlineTabloVeriIsleme",
-        mail: loginMail.value,
-        name: window.girisYapanIsim || '',
-        password: loginPassword.value
-      };
-      for (const field of fields) {
-        const el = document.getElementById("user_" + field);
-        if (isVisible(field)) {
-          if (el) {
-            // required kontrolü
-            if (el.hasAttribute("required") && !el.value.trim()) {
-              hideLoading();
-              alert("Lütfen tüm gerekli alanları doldurun.");
-              el.focus();
-              return;
-            }
-            paramsObj[field] = el.value;
-          }
-        } else {
-          // Gizli ise boş gönder
-          paramsObj[field] = '';
-        }
-      }
-      // Süre özel kontrolü
-      if (isVisible("calisilanSure")) {
-        const calisilanSure = document.getElementById("user_calisilanSure");
-        const dakikaDegeri = sureyiDakikayaCevir(calisilanSure.value);
-        if (calisilanSure.value && dakikaDegeri === "") {
-          hideLoading();
-          alert("Lütfen süreyi Saat:Dakika formatında giriniz (örn: 25:30)");
-          calisilanSure.focus();
-          return;
-        }
-      }
-      // urunTuru özel değer düzeltmesi
-      if (paramsObj.urunTuru === "Diğer") paramsObj.urunTuru = "Yok";
-      showLoading("Veriler işleniyor lütfen bekleyin...");
-      const params = new URLSearchParams(paramsObj);
-      try {
-        const res = await fetch(sheetUrl + "?" + params.toString());
-        const json = await res.json();
-        if (json.status === "success") {
-          hideLoading();
-          document.getElementById("successModal").classList.remove("hidden");
-          const eskiMail = document.getElementById('user_mail').value;
-          this.reset();
-          document.getElementById('user_mailDisplay').textContent = eskiMail;
-          document.getElementById('user_mail').value = eskiMail;
-          updateVisibility('onlyCalismaTuru');
-        } else {
-          hideLoading();
-          alert("Hata: " + (json.message || "Bilinmeyen hata"));
-        }
-      } catch (err) {
-        hideLoading();
-        alert("Hata: " + err.message);
-      }
-    });
-
-    // Admin formu submit
-    document.getElementById("formAdmin").addEventListener("submit", async function(e) {
-      const submitBtn = document.getElementById("admin_submitBtn");
-      if (submitBtn.classList.contains("hidden") || submitBtn.disabled) {
-        e.preventDefault();
-        return;
-      }
-      e.preventDefault();
-      // YENİ: Sadece görünür alanları kontrol et ve gönder
-      function isVisibleA(id) {
-        const div = document.getElementById("admin_" + id + "Div");
-        return div && div.style.display !== "none";
-      }
-      const fieldsA = [
-        "calismaTuru", "urunTuru", "urunOzelligi", "adet", "is", "odeme", "calisilanSure", "urunDurumu"
-      ];
-      const isimInput = document.getElementById("admin_isimInput");
-      const isimError = document.getElementById("admin_isimError");
-      if (!window.isimlerListesi.includes(isimInput.value)) {
-        isimError.classList.remove("hidden");
-        isimError.textContent = "Lütfen listeden bir isim seçin.";
-        isimInput.focus();
-        hideLoading();
-        return;
-      } else {
-        isimError.classList.add("hidden");
-      }
-      let paramsObjA = {
-        apiKey: "yKybsCyyUsWBSrm",
-        islem: "offlineTabloVeriIsleme",
-        mail: loginMail.value,
-        name: isimInput.value.replace('(Pasif) ', ''),
-        password: loginPassword.value
-      };
-      for (const field of fieldsA) {
-        const el = document.getElementById("admin_" + field);
-        if (isVisibleA(field)) {
-          if (el) {
-            // required kontrolü
-            if (el.hasAttribute("required") && !el.value.trim()) {
-              hideLoading();
-              alert("Lütfen tüm gerekli alanları doldurun.");
-              el.focus();
-              return;
-            }
-            paramsObjA[field] = el.value;
-          }
-        } else {
-          // Gizli ise boş gönder
-          paramsObjA[field] = '';
-        }
-      }
-      // Süre özel kontrolü
-      if (isVisibleA("calisilanSure")) {
-        const calisilanSure = document.getElementById("admin_calisilanSure");
-        const dakikaDegeri = sureyiDakikayaCevir(calisilanSure.value);
-        if (calisilanSure.value && dakikaDegeri === "") {
-          hideLoading();
-          alert("Lütfen süreyi Saat:Dakika formatında giriniz (örn: 25:30)");
-          calisilanSure.focus();
-          return;
-        }
-      }
-      // urunTuru özel değer düzeltmesi
-      if (paramsObjA.urunTuru === "Diğer") paramsObjA.urunTuru = "Yok";
-      showLoading("Veriler işleniyor lütfen bekleyin...");
-      const params = new URLSearchParams(paramsObjA);
-      try {
-        const res = await fetch(sheetUrl + "?" + params.toString());
-        const json = await res.json();
-        if (json.status === "success") {
-          hideLoading();
-          document.getElementById("successModal").classList.remove("hidden");
-          this.reset();
-          updateVisibility();
-        } else {
-          hideLoading();
-          alert("Hata: " + (json.message || "Bilinmeyen hata"));
-        }
-      } catch (err) {
-        hideLoading();
-        alert("Hata: " + err.message);
-      }
-    });
-
-    // Admin formu için isim dropdown ve arama işlevi
-    let isimSecildi = false;
-    let isimDropdownIndex = -1;
-    let isimDropdownFiltered = [];
-    const isimInput = document.getElementById("admin_isimInput");
-    const isimDropdown = document.getElementById("admin_isimDropdown");
-    const isimError = document.getElementById("admin_isimError");
-
-    // Türkçe karakterleri normalize eden fonksiyon
-    function turkceNormalize(str) {
-      return str
-        .replace(/ç/g, 'c').replace(/Ç/g, 'C')
-        .replace(/ğ/g, 'g').replace(/Ğ/g, 'G')
-        .replace(/ı/g, 'i').replace(/İ/g, 'I')
-        .replace(/ö/g, 'o').replace(/Ö/g, 'O')
-        .replace(/ş/g, 's').replace(/Ş/g, 'S')
-        .replace(/ü/g, 'u').replace(/Ü/g, 'U');
-    }
-
-    function guncelleIsimDropdown() {
-      const search = turkceNormalize(isimInput.value).toLowerCase();
-      if (!search) {
-        isimDropdownFiltered = window.isimlerListesi;
-      } else {
-        isimDropdownFiltered = window.isimlerListesi.filter(opt =>
-          turkceNormalize(opt).toLowerCase().includes(search)
-        );
-      }
-      if (isimDropdownFiltered.length === 0 || isimSecildi) {
-        isimDropdown.classList.add("hidden");
-        isimDropdown.innerHTML = "";
-        isimDropdownIndex = -1;
-        return;
-      }
-      isimDropdown.innerHTML = isimDropdownFiltered.map((opt, i) => `<div class='px-3 py-2 hover:bg-blue-100 cursor-pointer${i === isimDropdownIndex ? ' bg-blue-100' : ''}' data-value="${opt}">${opt}</div>`).join('');
-      isimDropdown.classList.remove("hidden");
-    }
-
-    if (isimInput) {
-      isimInput.addEventListener("input", function() {
-        isimError.classList.add("hidden");
-        isimSecildi = false;
-        isimDropdownIndex = -1;
-        guncelleIsimDropdown();
-        updateVisibility();
-      });
-      isimInput.addEventListener("focus", function() {
-        isimSecildi = false;
-        isimDropdownIndex = -1;
-        guncelleIsimDropdown();
-      });
-      isimInput.addEventListener("keydown", function(e) {
-        if (isimDropdown.classList.contains("hidden")) return;
-        if (isimDropdownFiltered.length === 0) return;
-        if (e.key === "ArrowDown") {
-          e.preventDefault();
-          isimDropdownIndex = (isimDropdownIndex + 1) % isimDropdownFiltered.length;
-          guncelleIsimDropdown();
-        } else if (e.key === "ArrowUp") {
-          e.preventDefault();
-          isimDropdownIndex = (isimDropdownIndex - 1 + isimDropdownFiltered.length) % isimDropdownFiltered.length;
-          guncelleIsimDropdown();
-        } else if (e.key === "Enter") {
-          let indexToSelect = isimDropdownIndex;
-          if (indexToSelect === -1 && isimDropdownFiltered.length > 0) {
-            indexToSelect = 0;
-          }
-          if (indexToSelect >= 0 && indexToSelect < isimDropdownFiltered.length) {
-            isimInput.value = isimDropdownFiltered[indexToSelect];
-            isimSecildi = true;
-            isimDropdown.classList.add("hidden");
-            isimDropdownIndex = -1;
-            guncelleIsimDropdown();
-            updateVisibility();
-            setTimeout(() => {
-              const isAdmin = document.getElementById('formAdmin').style.display !== 'none';
-              const calismaTuru = document.getElementById(isAdmin ? 'admin_calismaTuru' : 'user_calismaTuru');
-              if (calismaTuru) calismaTuru.focus();
-            }, 0);
-            e.preventDefault();
-          }
-        } else if (e.key === "Escape") {
-          isimDropdown.classList.add("hidden");
-          isimDropdownIndex = -1;
-        }
-      });
-      isimDropdown.addEventListener("mousedown", function(e) {
-        if (e.target && e.target.dataset.value) {
-          isimInput.value = e.target.dataset.value;
-          isimSecildi = true;
-          isimDropdown.classList.add("hidden");
-          isimDropdownIndex = -1;
-          updateVisibility();
-        }
-      });
-      // Inputtan çıkınca dropdown'u gizle (biraz gecikmeli ki tıklama çalışsın)
-      isimInput.addEventListener("blur", function() {
-        setTimeout(() => isimDropdown.classList.add("hidden"), 150);
-      });
-    }
-  </script>
 </body>
 </html>
