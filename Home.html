@@ -67,10 +67,11 @@
     <div class="w-96 bg-white rounded-xl shadow p-8 flex flex-col items-center">
       <h2 class="text-xl font-bold mb-4">Giriş Yap</h2>
       <input id="loginMail" type="email" placeholder="E-posta" class="w-full border p-2 rounded mb-3" required />
+      <div id="loginMailTooltip" class="text-xs text-gray-700 bg-gray-100 border border-gray-300 rounded px-2 py-1 mt-1 absolute z-50 shadow hidden" style="left:0;">Bizimle paylaştığınız Google Mail adresiniz.</div>
       <input id="loginPassword" type="password" placeholder="Şifre" class="w-full border p-2 rounded mb-4" required />
       <div class="flex flex-col gap-2 w-full">
         <button id="loginBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full">Giriş Yap</button>
-        <button id="passwordRequestBtn" class="bg-gray-400 text-white px-4 py-2 rounded w-full hover:bg-green-600 transition">Şifreni Al</button>
+        <button id="passwordRequestBtn" class="bg-gray-400 text-white px-4 py-2 rounded w-full hover:bg-green-600 transition">Şifre Al</button>
       </div>
       <span id="loginError" class="text-red-600 text-sm mt-3 hidden"></span>
       <span id="passwordRequestSuccess" class="text-green-600 text-sm mt-3 hidden"></span>
@@ -735,11 +736,25 @@
         }
         
         passwordRequestBtn.disabled = false;
-        passwordRequestBtn.textContent = 'Şifreni Al';
+        passwordRequestBtn.textContent = 'Şifre Al';
         passwordRequestBtn.classList.remove('bg-green-600');
         passwordRequestBtn.classList.add('bg-gray-400');
       });
       
+      // E-posta inputu için tooltip göster/gizle
+      loginMail.addEventListener('focus', function() {
+        const rect = loginMail.getBoundingClientRect();
+        loginMailTooltip.classList.remove('hidden');
+        // Tooltip yüksekliğini aldıktan sonra yukarıda konumlandır
+        const tooltipHeight = loginMailTooltip.offsetHeight;
+        loginMailTooltip.style.top = (loginMail.offsetTop - tooltipHeight - 4) + 'px';
+        loginMailTooltip.style.left = loginMail.offsetLeft + 'px';
+        loginMailTooltip.style.width = loginMail.offsetWidth + 'px';
+      });
+      loginMail.addEventListener('blur', function() {
+        loginMailTooltip.classList.add('hidden');
+      });
+
       document.body.style.overflow = 'hidden';
     });
   </script>
