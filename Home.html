@@ -68,8 +68,12 @@
       <h2 class="text-xl font-bold mb-4">Giriş Yap</h2>
       <input id="loginMail" type="email" placeholder="E-posta" class="w-full border p-2 rounded mb-3" required />
       <input id="loginPassword" type="password" placeholder="Şifre" class="w-full border p-2 rounded mb-4" required />
-      <button id="loginBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full">Giriş Yap</button>
+      <div class="flex flex-col gap-2 w-full">
+        <button id="loginBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full">Giriş Yap</button>
+        <button id="passwordRequestBtn" class="bg-gray-400 text-white px-4 py-2 rounded w-full hover:bg-green-600 transition">Şifreni Al</button>
+      </div>
       <span id="loginError" class="text-red-600 text-sm mt-3 hidden"></span>
+      <span id="passwordRequestSuccess" class="text-green-600 text-sm mt-3 hidden"></span>
     </div>
   </div>
   <div id="loginSuccess" class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40 hidden">
@@ -87,6 +91,8 @@
       const loginPassword = document.getElementById('loginPassword');
       const loginError = document.getElementById('loginError');
       const loginSuccess = document.getElementById('loginSuccess');
+      const passwordRequestBtn = document.getElementById('passwordRequestBtn');
+      const passwordRequestSuccess = document.getElementById('passwordRequestSuccess');
       const sheetUrl = "https://script.google.com/macros/s/AKfycbxTjUAytwmQneovY73plfp3rO6NN8ndGNKpUPEhb2wtquwYN0yoWODvSfCQ06WJ6GAE/exec";
       const loadingModal = document.getElementById("loadingModal");
 
@@ -94,6 +100,13 @@
       function showLoginError(msg) {
         loginError.textContent = msg;
         loginError.classList.remove('hidden');
+        passwordRequestSuccess.classList.add('hidden');
+      }
+      
+      function showPasswordRequestSuccess(msg) {
+        passwordRequestSuccess.textContent = msg;
+        passwordRequestSuccess.classList.remove('hidden');
+        loginError.classList.add('hidden');
       }
       function showLoading(text, hideForm) {
         if (text) document.getElementById("loadingText").textContent = text;
@@ -683,6 +696,50 @@
       });
       loginMail.addEventListener('keydown', handleLoginOnEnter);
       loginPassword.addEventListener('keydown', handleLoginOnEnter);
+      
+      // Şifre talebi butonu event listener
+      passwordRequestBtn.addEventListener('click', async function() {
+        const mail = loginMail.value.trim();
+        if (!mail) {
+          showLoginError('Lütfen e-posta adresinizi girin.');
+          loginMail.focus();
+          return;
+        }
+        
+        passwordRequestBtn.disabled = true;
+        passwordRequestBtn.textContent = 'Gönderiliyor...';
+        passwordRequestBtn.classList.add('bg-gray-400');
+        passwordRequestBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+        
+        try {
+          const params = new URLSearchParams({
+            apiKey: 'yKybsCyyUsWBSrm',
+            islem: 'haftalikVeriSifreTalebi',
+            mail: mail
+          });
+          
+          const url = sheetUrl + '?' + params.toString();
+          const res = await fetch(url);
+          const json = await res.json();
+          
+          if (json.status === 'success') {
+            showPasswordRequestSuccess('Şifreniz SMS ile gönderildi.');
+            passwordRequestBtn.classList.remove('bg-green-600', 'bg-gray-300');
+            passwordRequestBtn.classList.add('bg-gray-400');
+            passwordRequestBtn.classList.add('text-white');
+          } else {
+            showLoginError((json.message && json.message.error) || 'Şifre talebi başarısız.');
+          }
+        } catch (e) {
+          showLoginError('Sunucuya ulaşılamadı.');
+        }
+        
+        passwordRequestBtn.disabled = false;
+        passwordRequestBtn.textContent = 'Şifreni Al';
+        passwordRequestBtn.classList.remove('bg-green-600');
+        passwordRequestBtn.classList.add('bg-gray-400');
+      });
+      
       document.body.style.overflow = 'hidden';
     });
   </script>
